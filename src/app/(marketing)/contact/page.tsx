@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Mail, Phone, MapPin } from "lucide-react";
 
 import { ContactForm } from "@/components/marketing/contact-form";
@@ -5,13 +6,7 @@ import { siteConfig } from "@/lib/site";
 
 export const metadata = { title: "Contact" };
 
-export default function ContactPage({
-  searchParams,
-}: {
-  searchParams: { service?: string; plan?: string };
-}) {
-  const context = searchParams.service ?? searchParams.plan;
-
+export default function ContactPage() {
   return (
     <div className="container grid gap-12 py-16 md:grid-cols-2">
       <div>
@@ -42,7 +37,9 @@ export default function ContactPage({
       </div>
 
       <div className="rounded-2xl border bg-card p-6 md:p-8">
-        <ContactForm defaultService={context} />
+        <Suspense fallback={<div className="h-64 animate-pulse rounded-md bg-secondary/50" />}>
+          <ContactForm />
+        </Suspense>
       </div>
     </div>
   );

@@ -1,185 +1,119 @@
-# Pixelcraft Agency — Full-Stack Web Agency Platform
+# Pixelcraft Agency — Static Marketing Site
 
-A production-ready starter for a web agency that sells website services. It combines a modern
-marketing site, a logged-in client portal, an admin panel, Stripe-powered invoicing, transactional
-email, and a content system — all in a single Next.js 14 app.
+Marketing site for a web agency, built with Next.js 14 and deployed as a fully static export to
+**GitHub Pages**. The dynamic backend (auth, client portal, admin panel, API routes, Stripe
+invoicing, email) is currently disabled but preserved in git history — the previous commit
+(`29f83b6`) contains the full-stack version, which you can restore when you're ready to host on a
+Node runtime.
 
 ## What's included
 
-**Marketing site** — home, services (with per-service pages), portfolio/case studies, pricing,
-about, blog, contact form, privacy/terms, sitemap, robots.
-
-**Client portal** (auth-gated) — dashboard, projects with milestones and files, invoices (with
-Stripe Checkout for online payment), support tickets with two-way messaging.
-
-**Admin panel** (role-gated) — lead inbox with status pipeline, client list, project list, invoice
-list, ticket list, and ops dashboard metrics.
-
-**API + platform** — Auth.js v5 (credentials + Google/GitHub), Prisma + PostgreSQL, Stripe
-checkout and webhooks, Resend/SMTP email with a dev-log fallback, newsletter capture, honeypot-
-protected contact form, health check.
+- Home with hero, logo cloud, services grid, process, testimonials, CTA.
+- Per-service detail pages (`/services/[slug]`).
+- Portfolio / case studies (`/portfolio/[slug]`).
+- Pricing (project packages + care plans).
+- About, blog (`/blog/[slug]`), privacy, terms.
+- Contact form that opens the visitor's mail client (no backend required).
+- Automatic `sitemap.xml` and `robots.txt`.
 
 ## Tech stack
 
-| Layer         | Tool                                                     |
-| ------------- | -------------------------------------------------------- |
-| Framework     | Next.js 14 (App Router) · TypeScript · React 18          |
-| Styling       | Tailwind CSS · Radix primitives · shadcn-style components |
-| Auth          | Auth.js v5 (NextAuth) with Prisma adapter                |
-| Database      | PostgreSQL via Prisma ORM                                |
-| Payments      | Stripe Checkout + webhooks                               |
-| Email         | Resend (primary) or SMTP (fallback) with dev console log |
-| Forms         | react-hook-form + zod                                    |
-| Icons         | lucide-react                                             |
+Next.js 14 (App Router, static export) · TypeScript · Tailwind CSS · Radix/shadcn-style UI · Zod
++ react-hook-form · lucide-react.
 
-## Getting started
-
-### 1. Prerequisites
-- Node.js ≥ 18.18
-- Docker (optional, for local Postgres + Mailhog)
-
-### 2. Install
+## Quick start (local)
 
 ```bash
 npm install
-cp .env.example .env
+npm run dev           # http://localhost:3000
 ```
 
-Fill in `AUTH_SECRET` (`openssl rand -base64 32`). OAuth, Stripe, and email keys are optional for
-local development.
-
-### 3. Start local services (optional but recommended)
+## Build the static site
 
 ```bash
-docker compose up -d
+npm run build         # outputs to ./out
 ```
 
-This boots PostgreSQL on `localhost:5432` and Mailhog (SMTP catcher) at `http://localhost:8025`.
-To use Mailhog, set in `.env`:
-
-```
-SMTP_HOST=localhost
-SMTP_PORT=1025
-```
-
-### 4. Migrate + seed
+To preview the output exactly as GitHub Pages will serve it (under a `/webagency` subpath):
 
 ```bash
-npm run db:push     # sync schema to the database
-npm run db:seed     # creates admin + demo client + demo project/invoices/lead
+NEXT_PUBLIC_BASE_PATH=/webagency \
+NEXT_PUBLIC_APP_URL=https://<you>.github.io/webagency \
+npm run build
+
+npx http-server out -p 3001
+# then open http://localhost:3001/webagency/
 ```
 
-The seed prints credentials to stdout. Defaults:
+## Deploy to GitHub Pages
 
-```
-Admin:  admin@example.com / change-me-now
-Client: demo@client.com   / demo12345
-```
+1. Push this repo to GitHub.
+2. In **Settings → Pages**, set **Source** to **GitHub Actions**.
+3. Push to `main` — the workflow in `.github/workflows/deploy.yml` builds the site and publishes
+   it to Pages automatically. It derives the base path and public URL from the repo name, so you
+   don't need to configure anything else for a standard project Pages deployment.
 
-### 5. Run
+The published site will live at `https://<your-github-username>.github.io/<repo-name>/`.
 
-```bash
-npm run dev
-```
+### Custom domain
 
-Open `http://localhost:3000`.
+If you point a custom domain at Pages:
+1. Add a `CNAME` file to `public/` containing your domain.
+2. Remove or blank `NEXT_PUBLIC_BASE_PATH` in the workflow (domains serve from root).
+3. Set `NEXT_PUBLIC_APP_URL` to `https://yourdomain.com`.
 
-## Routes map
+## Environment variables
 
-### Public (marketing)
-- `/` — Home
-- `/services` and `/services/[slug]`
-- `/portfolio` and `/portfolio/[slug]`
-- `/pricing`, `/about`, `/blog`, `/blog/[slug]`, `/contact`, `/privacy`, `/terms`
+| Var                       | Purpose                                                          |
+| ------------------------- | ---------------------------------------------------------------- |
+| `NEXT_PUBLIC_APP_URL`     | Public origin, used for sitemap/OG tags                          |
+| `NEXT_PUBLIC_BASE_PATH`   | Subpath prefix (e.g. `/webagency`) when hosted on a project path |
 
-### Auth
-- `/login`, `/register`
+The GitHub Actions workflow sets both automatically from the repo name.
 
-### Client portal (signed-in)
-- `/dashboard` — overview with KPIs
-- `/projects` and `/projects/[slug]` — milestones, files, invoices
-- `/invoices` and `/invoices/[id]` — pay with Stripe
-- `/support`, `/support/new`, `/support/[id]` — two-way ticket messages
+## Customizing content
 
-### Admin (role: ADMIN)
-- `/admin` — ops dashboard
-- `/admin/leads` — inquiry inbox + pipeline
-- `/admin/clients`, `/admin/projects`, `/admin/invoices`, `/admin/tickets`
+All site copy is static TypeScript — no CMS required. Edit:
 
-### API
-- `POST /api/contact` — lead capture (honeypot-protected)
-- `POST /api/newsletter` — newsletter subscribe
-- `POST /api/auth/register` — account creation
-- `GET|POST /api/auth/[...nextauth]` — Auth.js
-- `POST /api/stripe/checkout` — create Checkout session for an invoice
-- `POST /api/webhooks/stripe` — mark invoices paid on completion
-- `GET /api/health` — healthcheck
+- `src/lib/site.ts` — brand name, tagline, contact info, nav.
+- `src/content/services.ts` — the 6 services (title, price, timeline, deliverables).
+- `src/content/pricing.ts` — project packages + care plans.
+- `src/content/portfolio.ts` — case studies.
+- `src/content/blog.ts` — blog posts (inline markdown-ish content).
 
-## Stripe webhooks (local)
+## Backend — how to re-enable later
 
-```bash
-stripe login
-stripe listen --forward-to localhost:3000/api/webhooks/stripe
-```
+The full-stack version (Auth.js, Prisma + Postgres, Stripe checkout, client portal, admin panel,
+transactional email, contact-form API) was stripped to make the site static-exportable. To bring
+it back:
 
-Put the printed `whsec_...` into `STRIPE_WEBHOOK_SECRET` in `.env`.
-
-## Scripts
-
-| Command                | Purpose                                              |
-| ---------------------- | ---------------------------------------------------- |
-| `npm run dev`          | Next dev server                                      |
-| `npm run build`        | Production build                                     |
-| `npm run start`        | Start built app                                      |
-| `npm run typecheck`    | `tsc --noEmit`                                       |
-| `npm run lint`         | ESLint (Next config)                                 |
-| `npm run db:generate`  | Prisma client                                        |
-| `npm run db:push`      | Sync schema (no migration file)                      |
-| `npm run db:migrate`   | Create + apply a named migration                     |
-| `npm run db:deploy`    | Apply migrations (production)                        |
-| `npm run db:seed`      | Seed demo data                                       |
-| `npm run db:studio`    | Prisma Studio UI                                     |
-
-## Deploying
-
-The app is a standard Next.js project. Recommended targets:
-
-- **Vercel** for the app (set all env vars; point `DATABASE_URL` at a managed Postgres).
-- **Neon**, **Supabase**, **Railway**, or **RDS** for PostgreSQL.
-- **Resend** for transactional email.
-- **Stripe** for payments (add the webhook `https://yourdomain.com/api/webhooks/stripe`).
-
-Before going live:
-1. Replace the placeholder copy in `src/lib/site.ts`, `/privacy`, `/terms`.
-2. Swap the demo case studies and blog posts in `src/content/*`.
-3. Run `npm run db:migrate -- --name init` and `npm run db:deploy` on the production DB.
-4. Set `AUTH_SECRET`, `NEXT_PUBLIC_APP_URL`, `STRIPE_WEBHOOK_SECRET` in the host's env.
-5. Smoke test the critical paths: contact form → lead created, register → dashboard, invoice →
-   Stripe Checkout → webhook flips status to PAID.
+1. `git checkout 29f83b6 -- prisma src/app/api src/app/\(auth\) src/app/\(portal\) src/lib/auth.ts src/lib/db.ts src/lib/email.ts src/lib/stripe.ts src/middleware.ts src/components/providers.tsx src/components/portal`
+2. Restore backend deps in `package.json` (`next-auth`, `@auth/prisma-adapter`, `@prisma/client`,
+   `prisma`, `bcryptjs`, `stripe`, `resend`, `nodemailer`, plus types).
+3. Remove `output: "export"` and the `basePath` config from `next.config.js`.
+4. Remove `NEXT_PUBLIC_BASE_PATH` from `Link` / asset paths (Next handles this automatically
+   without it).
+5. Deploy to a Node host (Vercel, Railway, Fly.io) with a managed Postgres.
 
 ## Project layout
 
 ```
 src/
   app/
-    (marketing)/      # Public pages + layout
-    (auth)/           # /login, /register
-    (portal)/         # Client dashboard, projects, invoices, support, admin/*
-    api/              # Route handlers: contact, newsletter, auth, stripe
+    (marketing)/       # All public pages
     globals.css
     layout.tsx
     robots.ts
     sitemap.ts
   components/
-    marketing/        # Hero, services grid, testimonials, contact form, etc.
-    portal/           # Sidebar
-    ui/               # Button, Input, Card, Badge, Label, Textarea
-  content/            # Static site content: services, pricing, portfolio, blog
-  lib/                # auth, db, email, stripe, site, utils, validators
-  middleware.ts       # Edge gate for portal/admin routes
-prisma/
-  schema.prisma
-  seed.ts
+    marketing/         # Hero, services grid, testimonials, contact form, …
+    ui/                # Button, Input, Card, Badge, Label, Textarea
+  content/             # Services, pricing, portfolio, blog (static TS)
+  lib/                 # site config, utils, zod validators
+.github/workflows/
+  deploy.yml           # Builds + deploys to GitHub Pages
+public/
+  .nojekyll            # Tells Pages not to run Jekyll on the output
 ```
 
 ## License

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -9,12 +10,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { contactSchema, type ContactInput } from "@/lib/validators";
+import { siteConfig } from "@/lib/site";
 
-type Status = "idle" | "submitting" | "success" | "error";
+// The backend is currently disabled — the site is a static export.
+// Submissions open the visitor's mail client with a pre-filled email.
+export function ContactForm() {
+  const searchParams = useSearchParams();
+  const [defaultMessage, setDefaultMessage] = useState("");
+  const [submitted, setSubmitted] = useState(false);
 
-export function ContactForm({ defaultService }: { defaultService?: string }) {
-  const [status, setStatus] = useState<Status>("idle");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  useEffect(() => {
+    const context = searchParams.get("service") ?? searchParams.get("plan");
+    if (context) {
+      setDefaultMessage(`I'm interested in ${context}.\n\n`);
+    }
+  }, [searchParams]);
 
   const {
     register,
@@ -23,42 +33,40 @@ export function ContactForm({ defaultService }: { defaultService?: string }) {
     formState: { errors },
   } = useForm<ContactInput>({
     resolver: zodResolver(contactSchema),
-    defaultValues: {
-      message: defaultService ? `I'm interested in ${defaultService}.\n\n` : "",
-    },
+    values: { name: "", email: "", company: "", budget: "", message: defaultMessage, website: "" },
   });
 
-  async function onSubmit(values: ContactInput) {
-    setStatus("submitting");
-    setErrorMessage(null);
-    try {
-      const res = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
-      });
-      if (!res.ok) {
-        const data = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(data.error ?? "Something went wrong. Please try again.");
-      }
-      setStatus("success");
-      reset();
-    } catch (err) {
-      setStatus("error");
-      setErrorMessage(err instanceof Error ? err.message : "Unknown error");
-    }
+  function onSubmit(values: ContactInput) {
+    const lines = [
+      `Name: ${values.name}`,
+      `Email: ${values.email}`,
+      values.company ? `Company: ${values.company}` : "",
+      values.budget ? `Budget: ${values.budget}` : "",
+      "",
+      values.message,
+    ].filter(Boolean);
+
+    const subject = `New inquiry from ${values.name}`;
+    const body = lines.join("\n");
+
+    window.location.href = `mailto:${siteConfig.email}?subject=${encodeURIComponent(
+      subject,
+    )}&body=${encodeURIComponent(body)}`;
+
+    setSubmitted(true);
+    reset();
   }
 
-  if (status === "success") {
+  if (submitted) {
     return (
       <div className="rounded-xl border bg-emerald-50 p-6 text-emerald-900">
-        <h3 className="text-lg font-semibold">Thanks — we got it.</h3>
+        <h3 className="text-lg font-semibold">Email ready to send.</h3>
         <p className="mt-2 text-sm">
-          We’ll reply within one business day. In the meantime, feel free to{" "}
-          <a href="/portfolio" className="underline">
-            browse our work
+          We’ve opened your mail client with a pre-filled message to{" "}
+          <a href={`mailto:${siteConfig.email}`} className="underline">
+            {siteConfig.email}
           </a>
-          .
+          . If nothing happened, please email us directly — we read every message.
         </p>
       </div>
     );
@@ -98,15 +106,13 @@ export function ContactForm({ defaultService }: { defaultService?: string }) {
       </Field>
 
       <div className="flex items-center gap-3">
-        <Button type="submit" disabled={status === "submitting"} size="lg">
-          {status === "submitting" ? "Sending…" : "Send inquiry"}
+        <Button type="submit" size="lg">
+          Send inquiry
         </Button>
-        <p className="text-xs text-muted-foreground">We reply within 1 business day.</p>
+        <p className="text-xs text-muted-foreground">
+          Opens your email client — the server-side form is temporarily disabled.
+        </p>
       </div>
-
-      {status === "error" && (
-        <p className="rounded-md bg-red-50 p-3 text-sm text-red-800">{errorMessage}</p>
-      )}
     </form>
   );
 }

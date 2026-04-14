@@ -1,3 +1,10 @@
+// Static-site configuration.
+//
+// NEXT_PUBLIC_APP_URL should be the full public origin of the site, e.g.
+// "https://ethanskis.github.io/webagency" for GitHub Pages or
+// "https://yourdomain.com" for a custom domain. The GitHub Actions
+// workflow injects this at build time.
+
 export const siteConfig = {
   name: "Pixelcraft Agency",
   shortName: "Pixelcraft",
@@ -5,6 +12,7 @@ export const siteConfig = {
   description:
     "We design, build, and maintain high-performance websites for ambitious businesses. Strategy, design, development, and ongoing care — under one roof.",
   url: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+  basePath: process.env.NEXT_PUBLIC_BASE_PATH ?? "",
   email: "hello@pixelcraft.agency",
   phone: "+1 (555) 010-1188",
   address: "1188 Market Street, Suite 400, San Francisco, CA",
